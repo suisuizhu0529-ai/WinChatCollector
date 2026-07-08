@@ -20,21 +20,33 @@ class ControlRule:
 
     def matches(self, control: Any) -> bool:
         """Return True when the control matches all populated rule fields."""
+        return self.match_reason(control) is not None
+
+    def match_reason(self, control: Any) -> str | None:
+        """Return the UIA field that matched, or None when this rule does not match."""
         automation_id = safe_text(control, ControlField.AUTOMATION_ID)
         class_name = safe_text(control, ControlField.CLASS_NAME)
         control_type = safe_text(control, ControlField.CONTROL_TYPE)
-        if self.automation_ids and automation_id not in self.automation_ids:
-            return False
-        if self.class_names and class_name not in self.class_names:
-            return False
-        if self.control_types and control_type not in self.control_types:
-            return False
-        return True
+        matched_fields: list[str] = []
+        if self.automation_ids:
+            if automation_id not in self.automation_ids:
+                return None
+            matched_fields.append("AutomationId")
+        if self.class_names:
+            if class_name not in self.class_names:
+                return None
+            matched_fields.append("ClassName")
+        if self.control_types:
+            if control_type not in self.control_types:
+                return None
+            matched_fields.append("ControlType")
+        return ", ".join(matched_fields) if matched_fields else None
 
 
 class ControlField:
     """UI Automation property names used by locator rules."""
 
+    NAME = "Name"
     AUTOMATION_ID = "AutomationId"
     CLASS_NAME = "ClassName"
     CONTROL_TYPE = "ControlTypeName"
@@ -45,10 +57,12 @@ class AutomationIds:
     """Known AutomationId values for DingTalk chat surfaces."""
 
     CONVERSATION_LIST = "ConvListView"
+    CONVERSATION_TOP_BAR = "ConvTabTopBar"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     FOOTER_BAR = "FootBar"
     SPLITTER = "QSplitter"
+    INPUT_AREA = "InputArea"
 
 
 class ClassNames:
@@ -58,11 +72,13 @@ class ClassNames:
     NAVIGATOR_VIEW = "NavigatorView"
     CHAT_WINDOW = "DingChatWnd"
     CONVERSATION_LIST = "ConvListView"
+    CONVERSATION_TOP_BAR = "ConvTabTopBar"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     FOOTER_BAR = "FootBar"
     SPLITTER = "QSplitter"
     CEF_BROWSER_WINDOW = "CefBrowserWindow"
+    INPUT_AREA = "InputArea"
 
 
 class ControlTypes:
@@ -74,6 +90,10 @@ class ControlTypes:
     EDIT = "EditControl"
     CUSTOM = "CustomControl"
 
+
+CHAT_WINDOW_RULES = (
+    ControlRule(class_names=(ClassNames.CHAT_WINDOW,)),
+)
 
 CONVERSATION_LIST_RULES = (
     ControlRule(automation_ids=(AutomationIds.CONVERSATION_LIST,)),
@@ -92,6 +112,8 @@ MESSAGE_CONTAINER_RULES = (
 )
 
 INPUT_AREA_RULES = (
+    ControlRule(automation_ids=(AutomationIds.INPUT_AREA,)),
+    ControlRule(class_names=(ClassNames.INPUT_AREA,)),
     ControlRule(control_types=(ControlTypes.EDIT,)),
 )
 
@@ -101,6 +123,8 @@ FOOTER_BAR_RULES = (
 )
 
 TOP_BAR_RULES = (
+    ControlRule(automation_ids=(AutomationIds.CONVERSATION_TOP_BAR,)),
+    ControlRule(class_names=(ClassNames.CONVERSATION_TOP_BAR,)),
     ControlRule(control_types=(ControlTypes.PANE,), class_names=(ClassNames.SPLITTER,)),
     ControlRule(automation_ids=(AutomationIds.SPLITTER,)),
 )
@@ -115,6 +139,15 @@ def safe_text(control: Any, field_name: str) -> str:
     return "" if value is None else str(value)
 
 
+def match_reason(control: Any, locator_rules: tuple[ControlRule, ...]) -> str | None:
+    """Return the first matching rule reason for a control."""
+    for rule in locator_rules:
+        reason = rule.match_reason(control)
+        if reason is not None:
+            return reason
+    return None
+
+
 def matches_any(control: Any, rules: tuple[ControlRule, ...]) -> bool:
     """Return True if the control matches one of the supplied rules."""
-    return any(rule.matches(control) for rule in rules)
+    return match_reason(control, rules) is not None

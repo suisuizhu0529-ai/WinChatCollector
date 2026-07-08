@@ -21,6 +21,7 @@ app = typer.Typer(help="Locate core regions in a DingTalk chat window.")
 def main(
     window: str = typer.Option(..., "--window", "-w", help="Top-level window title substring."),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),
+    debug: bool = typer.Option(False, "--debug", help="Print locator traversal details."),
 ) -> None:
     """Print a non-invasive chat layout report for a matching window."""
     configure_logging(verbose=verbose)
@@ -28,7 +29,8 @@ def main(
     try:
         finder = WindowFinder(UIAutomationClient())
         control = finder.find_one(WindowQuery(title=window))
-        layout = ChatLocator().locate(control)
+        debug_logger = console.print if debug else None
+        layout = ChatLocator(debug_logger=debug_logger).locate(control)
         print_layout(layout, console)
     except AutomationError as exc:
         console.print(error_panel(str(exc)))

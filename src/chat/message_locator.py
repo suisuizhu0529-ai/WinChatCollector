@@ -2,28 +2,53 @@
 
 from __future__ import annotations
 
+from collections import deque
+from collections.abc import Callable
 from typing import Any
 
 from chat import locator_rules as rules
 from chat.models import ChatContent, MessageContainer
 from models.ui_element import BoundingRectangle
 
+DebugLogger = Callable[[str], None]
+
 
 class MessageLocator:
     """Locate the message-list container without reading message text."""
 
-    def locate(self, chat_content: ChatContent) -> MessageContainer:
-        """Return message container metadata for the supplied chat content area."""
-        if chat_content.control is None:
-            return self._missing()
-        match = self._find_first(chat_content.control, rules.MESSAGE_CONTAINER_RULES)
-        return self._describe(match) if match is not None else self._missing()
+    def __init__(self, debug_logger: DebugLogger | None = None) -> None:
+        self.debug_logger = debug_logger
 
-    def _find_first(self, root: Any, locator_rules: tuple[rules.ControlRule, ...]) -> Any | None:
-        queue = [root]
+    def locate(
+        self,
+        chat_content: ChatContent,
+        fallback_root: Any | None = None,
+    ) -> MessageContainer:
+        """Return message container metadata for the supplied chat content area."""
+        search_root = chat_content.control or fallback_root
+        if search_root is None:
+            self._debug("✗ MessageContainer: no search root")
+            return self._missing()
+        match = self._find_first(search_root, rules.MESSAGE_CONTAINER_RULES, chat_content.control)
+        if match is None:
+            self._debug("✗ MessageContainer")
+            return self._missing()
+        self._debug(f"✓ MessageContainer ({self._identity(match)})")
+        return self._describe(match)
+
+    def _find_first(
+        self,
+        root: Any,
+        locator_rules: tuple[rules.ControlRule, ...],
+        chat_content_control: Any | None,
+    ) -> Any | None:
+        queue = deque([root])
         while queue:
-            control = queue.pop(0)
-            if control is not root and rules.matches_any(control, locator_rules):
+            control = queue.popleft()
+            self._debug(f"Checking MessageContainer: {self._identity(control)}")
+            reason = rules.match_reason(control, locator_rules)
+            if reason is not None and control is not chat_content_control:
+                self._debug(f"Matched MessageContainer by {reason}: {self._identity(control)}")
                 return control
             queue.extend(self._children(control))
         return None
@@ -76,3 +101,17 @@ class MessageLocator:
             bounding_rectangle=BoundingRectangle(0, 0, 0, 0),
             child_count=0,
         )
+
+    def _identity(self, control: Any) -> str:
+        name = rules.safe_text(control, rules.ControlField.NAME)
+        automation_id = rules.safe_text(control, rules.ControlField.AUTOMATION_ID)
+        class_name = rules.safe_text(control, rules.ControlField.CLASS_NAME)
+        control_type = rules.safe_text(control, rules.ControlField.CONTROL_TYPE)
+        return (
+            f"Name={name!r} AutomationId={automation_id!r} "
+            f"ClassName={class_name!r} ControlType={control_type!r}"
+        )
+
+    def _debug(self, message: str) -> None:
+        if self.debug_logger is not None:
+            self.debug_logger(message)
