@@ -29,6 +29,15 @@ def main(
     try:
         finder = WindowFinder(UIAutomationClient())
         control = finder.find_one(WindowQuery(title=window))
+        if debug:
+            info = finder.describe(control)
+            console.print(
+                "Selected window: "
+                f"Title={info.title!r} "
+                f"ClassName={info.class_name!r} "
+                f"ProcessName={info.process_name!r} "
+                f"PID={info.pid!r}"
+            )
         debug_logger = console.print if debug else None
         layout = ChatLocator(debug_logger=debug_logger).locate(control)
         print_layout(layout, console)
