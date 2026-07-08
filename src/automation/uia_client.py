@@ -61,6 +61,42 @@ class UIAutomationClient:
             return False
         return True
 
+    def desktop_control(self) -> Any:
+        """Return the desktop root control."""
+        try:
+            return self._automation.GetRootControl()
+        except Exception as exc:  # pragma: no cover - COM/library boundary
+            raise AutomationError("Failed to read the desktop root control.") from exc
+
+    def children(self, control: Any) -> list[Any]:
+        """Return non-null child controls for a UI Automation control."""
+        children = self._safe_call(control, "GetChildren") or []
+        return list(self._iter_controls(children))
+
+    def process_id(self, control: Any) -> int | None:
+        """Return the owning process id when UIA exposes it."""
+        value = self._safe_attr(control, "ProcessId")
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def process_name(self, control: Any) -> str:
+        """Return the executable name for the owning process when available."""
+        pid = self.process_id(control)
+        if pid is None:
+            return ""
+        try:
+            import psutil  # type: ignore[import-not-found]
+
+            return str(psutil.Process(pid).name())
+        except Exception:  # pragma: no cover - optional dependency / OS boundary
+            return ""
+
+    def safe_attr(self, control: Any, attr_name: str) -> str:
+        """Safely read a UIA attribute as text."""
+        return self._safe_attr(control, attr_name)
+
     def control_from_cursor(self) -> Any:
         """Return the UI Automation control currently under the mouse cursor."""
         try:
@@ -75,7 +111,14 @@ class UIAutomationClient:
 
     def snapshot(self, control: Any, include_children: bool = False, max_depth: int = 0) -> ElementSnapshot:
         """Build an :class:`ElementSnapshot` from a UI Automation control."""
-        return self._snapshot(control, include_children=include_children, max_depth=max_depth, depth=0)
+        return self._snapshot(
+            control,
+            include_children=include_children,
+            max_depth=max_depth,
+            depth=0,
+            node_id="0",
+            path_parts=[],
+        )
 
     def _snapshot(
         self,
@@ -84,19 +127,25 @@ class UIAutomationClient:
         include_children: bool,
         max_depth: int,
         depth: int,
+        node_id: str,
+        path_parts: list[str],
     ) -> ElementSnapshot:
         parent = self._safe_call(control, "GetParentControl")
         children = self._safe_call(control, "GetChildren") or []
+        current_label = self._node_label(control)
+        current_path_parts = [*path_parts, current_label]
         child_snapshots: list[ElementSnapshot] = []
 
         if include_children and depth < max_depth:
-            for child in self._iter_controls(children):
+            for index, child in enumerate(self._iter_controls(children)):
                 child_snapshots.append(
                     self._snapshot(
                         child,
                         include_children=True,
                         max_depth=max_depth,
                         depth=depth + 1,
+                        node_id=f"{node_id}.{index}",
+                        path_parts=current_path_parts,
                     )
                 )
 
@@ -109,6 +158,9 @@ class UIAutomationClient:
             runtime_id=self._runtime_id(control),
             parent=self._describe_parent(parent),
             child_count=len(list(self._iter_controls(children))),
+            node_id=node_id,
+            path=" / ".join(current_path_parts),
+            depth=depth,
             children=child_snapshots,
         )
 
@@ -159,6 +211,12 @@ class UIAutomationClient:
             return [int(item) for item in runtime_id]
         except (TypeError, ValueError):
             return []
+
+    def _node_label(self, control: Any) -> str:
+        name = self._safe_attr(control, "Name") or "<unnamed>"
+        control_type = self._safe_attr(control, "ControlTypeName") or "Unknown"
+        automation_id = self._safe_attr(control, "AutomationId")
+        return f"{control_type}:{name}#{automation_id}" if automation_id else f"{control_type}:{name}"
 
     def _describe_parent(self, parent: Any) -> str | None:
         if parent is None:
