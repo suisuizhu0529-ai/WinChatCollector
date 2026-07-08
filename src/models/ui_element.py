@@ -38,6 +38,9 @@ class ElementSnapshot:
     runtime_id: list[int]
     parent: str | None
     child_count: int
+    node_id: str = "0"
+    path: str = ""
+    depth: int = 0
     children: list["ElementSnapshot"] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
