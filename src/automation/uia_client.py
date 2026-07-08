@@ -81,6 +81,22 @@ class UIAutomationClient:
         except (TypeError, ValueError):
             return None
 
+    def window_handle(self, control: Any) -> int | None:
+        """Return the native window handle when UIA exposes it."""
+        for attr_name in ("NativeWindowHandle", "Handle"):
+            value = self._safe_attr(control, attr_name)
+            try:
+                handle = int(value)
+            except (TypeError, ValueError):
+                continue
+            if handle:
+                return handle
+        return None
+
+    def bounding_rectangle(self, control: Any) -> BoundingRectangle:
+        """Return a serializable bounding rectangle for a UIA control."""
+        return self._rectangle_from_control(control)
+
     def process_name(self, control: Any) -> str:
         """Return the executable name for the owning process when available."""
         pid = self.process_id(control)

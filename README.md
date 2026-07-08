@@ -42,6 +42,18 @@ Outputs:
 - `tree.txt`
 - `tree.json`
 
+
+### `find_window.py`
+
+Lists all top-level windows discovered from the desktop root, with optional title filtering.
+
+```bash
+python find_window.py
+python find_window.py --title DingTalk
+```
+
+Output columns: `Title`, `ClassName`, `PID`, `Handle`, and `BoundingRectangle`.
+
 ### `find_control.py`
 
 Searches the discovered window tree and prints `NodeId`, `Path`, `Depth`, `Parent`, and `Children` for matches. The default window title filter is `DingTalk`.

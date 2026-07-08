@@ -24,6 +24,7 @@ dev = ["pytest>=8.2.0"]
 wcc-inspect = "inspector.inspect_cli:app"
 wcc-dump-tree = "inspector.dump_tree_cli:app"
 wcc-live-inspector = "inspector.live_inspector_cli:app"
+wcc-find-window = "inspector.find_window_cli:app"
 wcc-find-control = "inspector.find_control_cli:app"
 wcc-tree-search = "inspector.tree_search_cli:app"
 

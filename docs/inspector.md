@@ -15,6 +15,7 @@ It does **not** export chat records, perform OCR, or use AI.
 
 - `inspect.py`: legacy cursor-based spot inspector for a single UI Automation control.
 - `dump_tree.py`: discovers a top-level window and exports a limited-depth subtree to `tree.txt` and `tree.json`.
+- `find_window.py`: lists all top-level windows with `Title`, `ClassName`, `PID`, `Handle`, and `BoundingRectangle`, optionally filtered by `--title`.
 - `find_control.py`: discovers a window, searches the full exported tree by `ControlType`, `AutomationId`, `ClassName`, or `Name`, and prints location metadata.
 - `tree_search.py`: searches an already-exported `tree.json` for quick offline UI-tree analysis.
 - `live_inspector.py`: continuously refreshes the current cursor control in a Rich terminal view, similar in spirit to Microsoft Inspect.exe.
@@ -22,6 +23,9 @@ It does **not** export chat records, perform OCR, or use AI.
 ## Examples
 
 ```bash
+python find_window.py
+python find_window.py --title DingTalk
+
 python dump_tree.py --window DingTalk
 python dump_tree.py --process-name DingTalk.exe
 python dump_tree.py --pid 12345
