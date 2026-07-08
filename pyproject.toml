@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "winchatcollector"
+version = "0.1.0"
+description = "Windows UI inspection framework for chat client automation research."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "uiautomation>=2.0.20",
+  "pywinauto>=0.6.8",
+  "rich>=13.7.0",
+  "loguru>=0.7.2",
+  "typer>=0.12.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2.0"]
+
+[project.scripts]
+wcc-inspect = "inspector.inspect_cli:app"
+wcc-dump-tree = "inspector.dump_tree_cli:app"
+wcc-live-inspector = "inspector.live_inspector_cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
