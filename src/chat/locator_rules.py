@@ -12,9 +12,15 @@ from typing import Any
 
 @dataclass(frozen=True)
 class ControlRule:
-    """A reusable set of UI Automation identity fields for locating controls."""
+    """A reusable set of UI Automation identity fields for locating controls.
+
+    ``automation_ids`` uses exact equality.  ``automation_id_contains``
+    uses substring matching (case-sensitive) so that partial AutomationId
+    values can be matched when the full string is not stable across builds.
+    """
 
     automation_ids: tuple[str, ...] = ()
+    automation_id_contains: tuple[str, ...] = ()
     class_names: tuple[str, ...] = ()
     control_types: tuple[str, ...] = ()
 
@@ -28,10 +34,18 @@ class ControlRule:
         class_name = safe_text(control, ControlField.CLASS_NAME)
         control_type = safe_text(control, ControlField.CONTROL_TYPE)
         matched_fields: list[str] = []
-        if self.automation_ids:
-            if automation_id not in self.automation_ids:
+        if self.automation_ids or self.automation_id_contains:
+            matched = False
+            if self.automation_ids and automation_id in self.automation_ids:
+                matched = True
+                matched_fields.append("AutomationId")
+            if self.automation_id_contains and any(
+                sub in automation_id for sub in self.automation_id_contains
+            ):
+                matched = True
+                matched_fields.append("AutomationId(contains)")
+            if not matched:
                 return None
-            matched_fields.append("AutomationId")
         if self.class_names:
             if class_name not in self.class_names:
                 return None
@@ -58,6 +72,9 @@ class AutomationIds:
 
     CONVERSATION_LIST = "ConvListView"
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
+    CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2Class"
+    QT_CHAT_NAVIGABLE_CONTENT = "qt_chat_navigable_content_widget"
+    IM_CHAT_COMPONENT = "im_chat::DTIMChatComponent"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     FOOTER_BAR = "FootBar"
@@ -73,6 +90,9 @@ class ClassNames:
     CHAT_WINDOW = "DingChatWnd"
     CONVERSATION_LIST = "ConvListView"
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
+    CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2Class"
+    QT_CHAT_NAVIGABLE_CONTENT = "qt_chat_navigable_content_widget"
+    IM_CHAT_COMPONENT = "im_chat::DTIMChatComponent"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     FOOTER_BAR = "FootBar"
@@ -103,6 +123,8 @@ CONVERSATION_LIST_RULES = (
 CHAT_CONTENT_RULES = (
     ControlRule(automation_ids=(AutomationIds.CHAT_CONTENT,)),
     ControlRule(class_names=(ClassNames.CHAT_CONTENT,)),
+    ControlRule(automation_ids=(AutomationIds.QT_CHAT_NAVIGABLE_CONTENT,)),
+    ControlRule(class_names=(ClassNames.IM_CHAT_COMPONENT,)),
 )
 
 MESSAGE_CONTAINER_RULES = (
@@ -125,6 +147,8 @@ FOOTER_BAR_RULES = (
 TOP_BAR_RULES = (
     ControlRule(automation_ids=(AutomationIds.CONVERSATION_TOP_BAR,)),
     ControlRule(class_names=(ClassNames.CONVERSATION_TOP_BAR,)),
+    ControlRule(automation_ids=(AutomationIds.CONVERSATION_TOP_BAR_V2,)),
+    ControlRule(automation_id_contains=("ConvTabTopBar",)),
     ControlRule(control_types=(ControlTypes.PANE,), class_names=(ClassNames.SPLITTER,)),
     ControlRule(automation_ids=(AutomationIds.SPLITTER,)),
 )
