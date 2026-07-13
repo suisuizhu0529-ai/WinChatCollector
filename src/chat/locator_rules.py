@@ -74,7 +74,7 @@ class AutomationIds:
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
     CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2Class"
     QT_CHAT_NAVIGABLE_CONTENT = "qt_chat_navigable_content_widget"
-    CHAT_CONTENT = "DTIMContentModule"
+    # 注：CHAT_CONTENT = "DTIMContentModule" 已删除（Dump 证实其为 Name 字段，非 AutomationId）
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     WIDGET_CHAT_BUBBLE = "widgetChatBubble"
     FOOTER_BAR = "FootBar"
@@ -92,12 +92,14 @@ class ClassNames:
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
     CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2"
     IM_CHAT_COMPONENT = "im_chat::DTIMChatComponent"
-    CHAT_CONTENT = "DTIMContentModule"
+    # 注：CHAT_CONTENT = "DTIMContentModule" 已删除（Dump 证实其为 Name 字段，非 ClassName）
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
     FOOTER_BAR = "FootBar"
     SPLITTER = "QSplitter"
-    CEF_BROWSER_WINDOW = "CefBrowserWindow"
     INPUT_AREA = "InputArea"
+    # 新增：依据 Windows Dump 的真实消息容器类名
+    MESSAGE_CONTAINER = "im_chat::DTIMChatBox"
+    # 注：CEF_BROWSER_WINDOW 已移除（避免误匹配）
 
 
 class ControlTypes:
@@ -120,18 +122,18 @@ CONVERSATION_LIST_RULES = (
 )
 
 CHAT_CONTENT_RULES = (
-    ControlRule(automation_ids=(AutomationIds.CHAT_CONTENT,)),
-    ControlRule(class_names=(ClassNames.CHAT_CONTENT,)),
-    ControlRule(automation_ids=(AutomationIds.QT_CHAT_NAVIGABLE_CONTENT,)),
-    ControlRule(class_names=(ClassNames.IM_CHAT_COMPONENT,)),
+    # 注：已删除无效的 ClassName 规则 "DTIMContentModule"（该值实际为 Name，非 ClassName）
+    # 匹配依据完全来自 Windows Dump
+    ControlRule(automation_ids=(AutomationIds.QT_CHAT_NAVIGABLE_CONTENT,)),  # qt_chat_navigable_content_widget
+    ControlRule(class_names=(ClassNames.IM_CHAT_COMPONENT,)),               # im_chat::DTIMChatComponent
 )
 
 MESSAGE_CONTAINER_RULES = (
-    ControlRule(automation_ids=(AutomationIds.CHAT_BUBBLE_WIDGET,)),
-    ControlRule(class_names=(ClassNames.CHAT_BUBBLE_WIDGET,)),
+    # 1. 匹配 AutomationId 包含 "widgetChatBubble"（Dump 已确认）
     ControlRule(automation_id_contains=(AutomationIds.WIDGET_CHAT_BUBBLE,)),
-    ControlRule(class_names=("im_chat::DTIMChatBox",)),
-    ControlRule(class_names=(ClassNames.CEF_BROWSER_WINDOW,)),
+    # 2. 匹配真实 ClassName "im_chat::DTIMChatBox"（新增专用常量）
+    ControlRule(class_names=(ClassNames.MESSAGE_CONTAINER,)),
+    # 注：已删除 CEF_BROWSER_WINDOW 规则（Dump 证明它不是消息容器）
 )
 
 INPUT_AREA_RULES = (
@@ -149,12 +151,14 @@ TOP_BAR_RULES = (
     ControlRule(automation_ids=(AutomationIds.CONVERSATION_TOP_BAR,)),
     ControlRule(class_names=(ClassNames.CONVERSATION_TOP_BAR,)),
     ControlRule(automation_ids=(AutomationIds.CONVERSATION_TOP_BAR_V2,)),
+    # 兼容规则：匹配 AutomationId 包含 "ConvTabTopBar" 的未来版本（后缀可能变化）
     ControlRule(automation_id_contains=("ConvTabTopBar",)),
     ControlRule(control_types=(ControlTypes.PANE,), class_names=(ClassNames.SPLITTER,)),
     ControlRule(automation_ids=(AutomationIds.SPLITTER,)),
 )
 
 
+# ---------- 保持原样的工具函数 ----------
 def safe_text(control: Any, field_name: str) -> str:
     """Read a UI Automation identity field without leaking COM exceptions."""
     try:
