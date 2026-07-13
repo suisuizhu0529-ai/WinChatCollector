@@ -74,9 +74,9 @@ class AutomationIds:
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
     CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2Class"
     QT_CHAT_NAVIGABLE_CONTENT = "qt_chat_navigable_content_widget"
-    IM_CHAT_COMPONENT = "im_chat::DTIMChatComponent"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
+    WIDGET_CHAT_BUBBLE = "widgetChatBubble"
     FOOTER_BAR = "FootBar"
     SPLITTER = "QSplitter"
     INPUT_AREA = "InputArea"
@@ -90,8 +90,7 @@ class ClassNames:
     CHAT_WINDOW = "DingChatWnd"
     CONVERSATION_LIST = "ConvListView"
     CONVERSATION_TOP_BAR = "ConvTabTopBar"
-    CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2Class"
-    QT_CHAT_NAVIGABLE_CONTENT = "qt_chat_navigable_content_widget"
+    CONVERSATION_TOP_BAR_V2 = "ConvTabTopBarV2"
     IM_CHAT_COMPONENT = "im_chat::DTIMChatComponent"
     CHAT_CONTENT = "DTIMContentModule"
     CHAT_BUBBLE_WIDGET = "ChatBubbleWidget"
@@ -130,6 +129,8 @@ CHAT_CONTENT_RULES = (
 MESSAGE_CONTAINER_RULES = (
     ControlRule(automation_ids=(AutomationIds.CHAT_BUBBLE_WIDGET,)),
     ControlRule(class_names=(ClassNames.CHAT_BUBBLE_WIDGET,)),
+    ControlRule(automation_id_contains=(AutomationIds.WIDGET_CHAT_BUBBLE,)),
+    ControlRule(class_names=("im_chat::DTIMChatBox",)),
     ControlRule(class_names=(ClassNames.CEF_BROWSER_WINDOW,)),
 )
 
