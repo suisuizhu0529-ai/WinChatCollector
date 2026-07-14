@@ -12,6 +12,9 @@ from models.ui_element import BoundingRectangle
 
 logger = logging.getLogger(__name__)
 
+DINGTALK_WINDOW_CLASS = "StandardFrame_DingTalk"
+DINGTALK_PROCESS_NAME = "DingTalk.exe"
+
 
 @dataclass(frozen=True)
 class WindowQuery:
@@ -32,6 +35,7 @@ class WindowInfo:
 
     title: str
     class_name: str
+    process_name: str
     pid: int | None
     handle: int | None
     bounding_rectangle: BoundingRectangle
@@ -63,6 +67,7 @@ class WindowFinder:
         return WindowInfo(
             title=self.client.safe_attr(control, "Name"),
             class_name=self.client.safe_attr(control, "ClassName"),
+            process_name=self.client.process_name(control),
             pid=self.client.process_id(control),
             handle=self.client.window_handle(control),
             bounding_rectangle=self.client.bounding_rectangle(control),
@@ -73,18 +78,51 @@ class WindowFinder:
         matches = self.find_all(query)
         if not matches:
             raise AutomationError(f"No top-level window matched {query}.")
+        selected = self._select_best_match(matches, query)
         if len(matches) > 1:
-            logger.warning("%s windows matched %s; using the first one.", len(matches), query)
-        return matches[0]
+            logger.warning(
+                "%s windows matched %s; selected %s.",
+                len(matches),
+                query,
+                self.describe(selected),
+            )
+        return selected
 
     def find_all(self, query: WindowQuery) -> list[Any]:
         """Return all matching top-level windows for the query."""
         query.validate()
         return [window for window in self.top_level_windows() if self._matches(window, query)]
 
+    def _select_best_match(self, matches: list[Any], query: WindowQuery) -> Any:
+        """Choose the most likely DingTalk window while preserving fallback behavior."""
+        if not query.title:
+            return matches[0]
+
+        dingtalk_class_matches = [
+            window
+            for window in matches
+            if self.client.safe_attr(window, "ClassName") == DINGTALK_WINDOW_CLASS
+        ]
+        if len(dingtalk_class_matches) == 1:
+            return dingtalk_class_matches[0]
+        candidates = dingtalk_class_matches or matches
+
+        dingtalk_process_matches = [
+            window
+            for window in candidates
+            if self.client.process_name(window).lower() == DINGTALK_PROCESS_NAME.lower()
+        ]
+        if len(dingtalk_process_matches) == 1:
+            return dingtalk_process_matches[0]
+        if dingtalk_process_matches:
+            return dingtalk_process_matches[0]
+        return candidates[0]
+
     def _matches(self, control: Any, query: WindowQuery) -> bool:
-        if query.title and query.title.lower() not in self.client.safe_attr(control, "Name").lower():
-            return False
+        if query.title:
+            title = self.client.safe_attr(control, "Name").lower()
+            if query.title.lower() not in title:
+                return False
         if query.pid is not None and self.client.process_id(control) != query.pid:
             return False
         if query.process_name:

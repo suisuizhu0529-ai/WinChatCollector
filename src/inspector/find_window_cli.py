@@ -21,7 +21,7 @@ def main(
     title: str | None = typer.Option(None, "--title", "-t", help="Filter by title substring."),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),
 ) -> None:
-    """Print Title, ClassName, PID, Handle, and BoundingRectangle for top-level windows."""
+    """Print Title, ClassName, ProcessName, PID, Handle, and bounds."""
     configure_logging(verbose=verbose)
     console = Console()
     try:
@@ -35,12 +35,13 @@ def main(
 
 def _print_windows(windows: list[WindowInfo], console: Console) -> None:
     table = Table(title=f"Top-level Windows ({len(windows)})", show_header=True)
-    for column in ("Title", "ClassName", "PID", "Handle", "BoundingRectangle"):
+    for column in ("Title", "ClassName", "ProcessName", "PID", "Handle", "BoundingRectangle"):
         table.add_column(column)
     for window in windows:
         table.add_row(
             window.title,
             window.class_name,
+            window.process_name,
             "" if window.pid is None else str(window.pid),
             "" if window.handle is None else str(window.handle),
             str(asdict(window.bounding_rectangle)),
